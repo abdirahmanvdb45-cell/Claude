@@ -1,0 +1,103 @@
+{
+  "_meta": {
+    "name": "01 — Monthly Content Trigger",
+    "description": "Fires on the 1st of each month at 9am. Sends personalised questionnaire emails to all active clients. Handles Day 4 and Day 7 reminders. Triggers fallback workflow on Day 8 for clients who have not submitted.",
+    "version": "1.0.0",
+    "nodes": [
+      "Schedule Trigger",
+      "Airtable — Get Active Clients",
+      "SplitInBatches",
+      "Check — Submission Received This Month?",
+      "Resend — Send Questionnaire Email",
+      "Airtable — Update Last Email Sent",
+      "Telegram — Alert on Send Error"
+    ],
+    "schedule": {
+      "day1":  "0 9 1 * *",
+      "day4":  "0 9 4 * *",
+      "day7":  "0 9 7 * *",
+      "day8":  "0 8 8 * *"
+    }
+  },
+  "nodes": [
+    {
+      "id": "schedule-day1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "name": "Day 1 — Send Questionnaire",
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 9 1 * *" }]
+        }
+      }
+    },
+    {
+      "id": "airtable-get-clients",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Get Active Clients",
+      "parameters": {
+        "operation": "list",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "filterByFormula": "AND({status} = 'active', {email} != '')"
+      }
+    },
+    {
+      "id": "split-batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "name": "Process Clients One at a Time",
+      "parameters": {
+        "batchSize": 1,
+        "options": { "reset": false }
+      }
+    },
+    {
+      "id": "resend-questionnaire-email",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Resend — Send Questionnaire Email",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "resendApi",
+        "body": {
+          "from": "{{ $env.FROM_EMAIL }}",
+          "to": "{{ $json.email }}",
+          "subject": "{{ $json.name }}, your LinkedIn content for this month",
+          "html": "<!-- See email-templates/questionnaire-delivery.html -->"
+        }
+      }
+    },
+    {
+      "id": "airtable-update-email-sent",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Update Email Sent Date",
+      "parameters": {
+        "operation": "update",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "id": "{{ $json.airtable_record_id }}",
+        "fields": {
+          "questionnaire_sent_at": "{{ $now.toISO() }}",
+          "status": "questionnaire_sent"
+        }
+      }
+    },
+    {
+      "id": "schedule-day8-fallback",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "name": "Day 8 — Check for Missing Submissions",
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 8 8 * *" }]
+        }
+      },
+      "_comment": "Queries Airtable for clients where status = questionnaire_sent AND last_content_generated != current month. Triggers workflow 05 (fallback) for each."
+    }
+  ],
+  "connections": {
+    "Day 1 — Send Questionnaire": { "main": [["Airtable — Get Active Clients"]] },
+    "Airtable — Get Active Clients": { "main": [["Process Clients One at a Time"]] },
+    "Process Clients One at a Time": { "main": [["Resend — Send Questionnaire Email"]] },
+    "Resend — Send Questionnaire Email": { "main": [["Airtable — Update Email Sent Date"]] }
+  }
+}

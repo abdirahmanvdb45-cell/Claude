@@ -1,0 +1,171 @@
+{
+  "_meta": {
+    "name": "02 — Content Generation Pipeline",
+    "description": "Triggered by Typeform webhook. Fetches voice profile, calls Claude API, validates output, creates Google Doc, sends delivery email. Target SLA: 60 seconds from form submit to email in inbox.",
+    "version": "1.0.0",
+    "trigger": "Typeform webhook POST to /webhook/typeform/monthly-input",
+    "sla_seconds": 60,
+    "nodes": [
+      "Webhook — Typeform Submission",
+      "Validate Payload — Check client_id",
+      "Airtable — Check for Duplicate Submission",
+      "Airtable — Fetch Voice Profile",
+      "Airtable — Fetch Client Record",
+      "Function — Build Claude Prompt",
+      "Claude API — Generate Posts",
+      "Function — Validate Claude Output",
+      "IF — Validation Passed?",
+      "Claude API — Retry with Reinforced Prompt (on fail)",
+      "Function — Parse Posts",
+      "Google Docs — Create Content Doc",
+      "Resend — Send Delivery Email",
+      "Airtable — Update Client Status",
+      "Telegram — Alert on Any Failure"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "webhook-typeform",
+      "type": "n8n-nodes-base.webhook",
+      "name": "Webhook — Typeform Submission",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "typeform/monthly-input",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "validate-payload",
+      "type": "n8n-nodes-base.function",
+      "name": "Validate Payload",
+      "parameters": {
+        "functionCode": "const body = $input.first().json;\nconst clientId = body?.form_response?.hidden?.client_id;\nif (!clientId) {\n  // Log as orphan and halt\n  return [{ json: { _orphan: true, raw: body, error: 'Missing client_id in hidden field' } }];\n}\nreturn [{ json: { ...body, client_id: clientId } }];"
+      }
+    },
+    {
+      "id": "airtable-check-duplicate",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Check for Duplicate Submission",
+      "parameters": {
+        "operation": "list",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "content_log",
+        "filterByFormula": "AND({client_id} = '{{ $json.client_id }}', {month} = '{{ $now.format('YYYY-MM') }}')"
+      },
+      "_comment": "If a record is found, this submission is a duplicate. Halt and log."
+    },
+    {
+      "id": "airtable-fetch-voice-profile",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Fetch Voice Profile",
+      "parameters": {
+        "operation": "list",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "voice_profiles",
+        "filterByFormula": "{client_id} = '{{ $json.client_id }}'"
+      }
+    },
+    {
+      "id": "claude-generate-posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Claude API — Generate Posts",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "headers": {
+          "x-api-key": "={{ $env.ANTHROPIC_API_KEY }}",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": "claude-sonnet-4-6",
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "role": "user",
+              "content": "={{ $json._builtPrompt }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 90000,
+          "retry": {
+            "enabled": true,
+            "maxTries": 3,
+            "waitBetweenTries": 5000
+          }
+        }
+      }
+    },
+    {
+      "id": "validate-claude-output",
+      "type": "n8n-nodes-base.function",
+      "name": "Function — Validate Claude Output",
+      "parameters": {
+        "functionCode": "// Paste full contents of validators/claudeOutputValidator.js here\n// Then call:\n// const result = validateClaudeOutput(rawOutput, expectedCount);\n// return [{ json: result }];"
+      }
+    },
+    {
+      "id": "if-validation-passed",
+      "type": "n8n-nodes-base.if",
+      "name": "IF — Validation Passed?",
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{ $json.passed }}", "value2": true }]
+        }
+      }
+    },
+    {
+      "id": "google-docs-create",
+      "type": "n8n-nodes-base.googleDocs",
+      "name": "Google Docs — Create Content Doc",
+      "parameters": {
+        "operation": "create",
+        "title": "={{ $json.clientName }} — LinkedIn Posts — {{ $now.format('MMMM YYYY') }}",
+        "content": "={{ $json._formattedDocContent }}"
+      },
+      "_comment": "On failure (3 retries): fall back to email delivery of raw post text. See error handler."
+    },
+    {
+      "id": "resend-delivery-email",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Resend — Send Delivery Email",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "resendApi",
+        "body": {
+          "from": "{{ $env.FROM_EMAIL }}",
+          "to": "={{ $json.clientEmail }}",
+          "subject": "Your LinkedIn posts for {{ $now.format('MMMM') }} are ready",
+          "html": "<!-- See email-templates/content-delivery.html -->"
+        }
+      }
+    },
+    {
+      "id": "airtable-update-status",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Update Client to doc_delivered",
+      "parameters": {
+        "operation": "update",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "id": "={{ $json.airtableRecordId }}",
+        "fields": {
+          "status": "doc_delivered",
+          "last_content_generated": "={{ $now.format('YYYY-MM') }}",
+          "last_doc_id": "={{ $json.googleDocId }}",
+          "last_checked_time": "={{ $now.toISO() }}"
+        }
+      }
+    }
+  ],
+  "errorHandlers": {
+    "claude_timeout": "Save raw answers to pending_generation, set status = generation_failed, Telegram alert, schedule retry at 06:00 next day",
+    "google_docs_create_failure": "Deliver posts as formatted HTML in email body instead. Client can still approve via webhook button.",
+    "resend_failure": "Retry 3x with 60s backoff. On exhaustion: try Gmail SMTP fallback node.",
+    "all_retries_exhausted": "Telegram critical alert. Set status = generation_failed. Manual intervention required."
+  }
+}

@@ -1,0 +1,183 @@
+{
+  "_meta": {
+    "name": "03 — Approval & Scheduling Pipeline",
+    "description": "Triggered when client clicks the 'Approve & Schedule' button in their delivery email. Fetches final post text from Google Doc (capturing any direct edits), runs pre-flight checks, schedules to Taplio with GET verification, confirms or alerts.",
+    "version": "1.0.0",
+    "trigger": "GET /webhook/approve?client_id={id}&month={month}&doc_id={doc_id}",
+    "critical_rule": "Only 'scheduled_confirmed' is a clean state. 'scheduled' alone must never exist."
+  },
+  "nodes": [
+    {
+      "id": "webhook-approval",
+      "type": "n8n-nodes-base.webhook",
+      "name": "Webhook — Client Approval Click",
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "approve",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "_comment": "URL format: /webhook/approve?client_id=XXX&month=YYYY-MM&doc_id=YYY"
+    },
+    {
+      "id": "extract-params",
+      "type": "n8n-nodes-base.function",
+      "name": "Extract and Validate Query Params",
+      "parameters": {
+        "functionCode": "const { client_id, month, doc_id } = $input.first().json.query;\nif (!client_id || !month || !doc_id) {\n  throw new Error('Missing required query params: client_id, month, doc_id');\n}\nreturn [{ json: { client_id, month, doc_id } }];"
+      }
+    },
+    {
+      "id": "airtable-check-status",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Confirm Status is doc_delivered",
+      "parameters": {
+        "operation": "list",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "filterByFormula": "AND({client_id} = '{{ $json.client_id }}', {status} = 'doc_delivered')"
+      },
+      "_comment": "If not found: client may have already approved (duplicate click) or is in wrong state. Return 200 with 'already processed' message."
+    },
+    {
+      "id": "google-docs-fetch-content",
+      "type": "n8n-nodes-base.googleDocs",
+      "name": "Google Docs — Fetch Final Post Text",
+      "parameters": {
+        "operation": "get",
+        "documentId": "={{ $json.doc_id }}"
+      },
+      "_comment": "Reads the current doc content — captures any revisions the client made directly in the doc."
+    },
+    {
+      "id": "parse-final-posts",
+      "type": "n8n-nodes-base.function",
+      "name": "Function — Parse Final Posts from Doc",
+      "parameters": {
+        "functionCode": "// Parse the Google Doc body text into individual post objects\n// Same separator logic as claudeOutputValidator\n// Return array of { postNumber, text, postingTime, characterCount }"
+      }
+    },
+    {
+      "id": "preflight-checks",
+      "type": "n8n-nodes-base.function",
+      "name": "Function — Run Preflight Quality Checks",
+      "parameters": {
+        "functionCode": "// Paste full contents of validators/preflightChecker.js here\n// Then call:\n// const result = runBatchPreflightChecks({ posts, clientName, recentPostHashes });\n// return [{ json: result }];"
+      }
+    },
+    {
+      "id": "split-posts-for-scheduling",
+      "type": "n8n-nodes-base.splitInBatches",
+      "name": "Process Posts One at a Time",
+      "parameters": { "batchSize": 1, "options": {} }
+    },
+    {
+      "id": "taplio-schedule-post",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Taplio — Schedule Post",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.taplio.com/api/v1/linkedin/schedule",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "taplioApi",
+        "body": {
+          "text": "={{ $json.text }}",
+          "scheduledAt": "={{ $json.scheduledAt }}",
+          "accountId": "={{ $json.taplioAccountId }}"
+        },
+        "options": { "timeout": 10000 }
+      }
+    },
+    {
+      "id": "wait-3s",
+      "type": "n8n-nodes-base.wait",
+      "name": "Wait 3s for Taplio Propagation",
+      "parameters": { "amount": 3, "unit": "seconds" }
+    },
+    {
+      "id": "taplio-verify-post",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Taplio — Verify Post in Queue (GET)",
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.taplio.com/api/v1/scheduled-posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "taplioApi",
+        "qs": { "id": "={{ $json.taplioPostId }}" },
+        "options": { "timeout": 10000 }
+      },
+      "_comment": "If post not found in response: treat the 200 as a silent failure. Retry POST up to 2 more times."
+    },
+    {
+      "id": "if-all-confirmed",
+      "type": "n8n-nodes-base.if",
+      "name": "IF — All Posts Confirmed?",
+      "parameters": {
+        "conditions": {
+          "number": [{ "value1": "={{ $json.unconfirmedCount }}", "value2": 0, "operation": "equal" }]
+        }
+      }
+    },
+    {
+      "id": "airtable-update-confirmed",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Set status = scheduled_confirmed",
+      "parameters": {
+        "operation": "update",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "id": "={{ $json.airtableRecordId }}",
+        "fields": {
+          "status": "scheduled_confirmed",
+          "posts_scheduled": "={{ $json.confirmedCount }}"
+        }
+      }
+    },
+    {
+      "id": "resend-confirmation-email",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Resend — Send Scheduling Confirmation to Client",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "resendApi",
+        "body": {
+          "from": "{{ $env.FROM_EMAIL }}",
+          "to": "={{ $json.clientEmail }}",
+          "subject": "Your LinkedIn posts are scheduled",
+          "html": "<!-- See email-templates/scheduling-confirmation.html -->"
+        }
+      }
+    },
+    {
+      "id": "telegram-scheduling-alert",
+      "type": "n8n-nodes-base.telegram",
+      "name": "Telegram — Scheduling Success Alert",
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_OPERATOR_CHAT_ID }}",
+        "text": "✅ {{ $json.clientName }} — {{ $json.confirmedCount }} posts scheduled and verified."
+      }
+    },
+    {
+      "id": "telegram-partial-failure-alert",
+      "type": "n8n-nodes-base.telegram",
+      "name": "Telegram — Partial Scheduling Failure",
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_OPERATOR_CHAT_ID }}",
+        "text": "⚠️ PARTIAL SCHEDULING FAILURE\nClient: {{ $json.clientName }}\nScheduled: {{ $json.confirmedCount }}/{{ $json.totalCount }} posts confirmed\nUnconfirmed: {{ $json.unconfirmedPosts }}\nAction: manual re-trigger required"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook — Client Approval Click": { "main": [["Extract and Validate Query Params"]] },
+    "Extract and Validate Query Params": { "main": [["Airtable — Confirm Status is doc_delivered"]] },
+    "Airtable — Confirm Status is doc_delivered": { "main": [["Google Docs — Fetch Final Post Text"]] },
+    "Google Docs — Fetch Final Post Text": { "main": [["Function — Parse Final Posts from Doc"]] },
+    "Function — Parse Final Posts from Doc": { "main": [["Function — Run Preflight Quality Checks"]] },
+    "Function — Run Preflight Quality Checks": { "main": [["Process Posts One at a Time"]] },
+    "Process Posts One at a Time": { "main": [["Taplio — Schedule Post"]] },
+    "Taplio — Schedule Post": { "main": [["Wait 3s for Taplio Propagation"]] },
+    "Wait 3s for Taplio Propagation": { "main": [["Taplio — Verify Post in Queue (GET)"]] }
+  }
+}

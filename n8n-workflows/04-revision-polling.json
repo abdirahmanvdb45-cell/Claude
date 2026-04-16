@@ -1,0 +1,189 @@
+{
+  "_meta": {
+    "name": "04 — Revision Polling (Google Doc Comments)",
+    "description": "Polls Google Docs every 2 hours (8am–10pm) for unresolved comments on active client docs. When found, Claude drafts a revision, updates the post text in the doc, and replies to the comment — leaving it OPEN for the client to resolve. Sends Telegram alert after each revision.",
+    "version": "1.0.0",
+    "schedule": "0 8,10,12,14,16,18,20,22 * * *",
+    "critical_rules": [
+      "Claude revises. Claude NEVER resolves comments. Only the client resolves.",
+      "Max 2 Claude revision passes per comment thread. On 3rd, escalate to operator via Telegram.",
+      "Operator resolves via Telegram flag — not another Claude pass."
+    ]
+  },
+  "nodes": [
+    {
+      "id": "schedule-poll",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "name": "Schedule — Every 2hrs 8am–10pm",
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 8,10,12,14,16,18,20,22 * * *" }]
+        }
+      }
+    },
+    {
+      "id": "airtable-get-active-docs",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Get Clients Awaiting Approval",
+      "parameters": {
+        "operation": "list",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "filterByFormula": "AND({status} = 'doc_delivered', {last_doc_id} != '')"
+      }
+    },
+    {
+      "id": "split-clients",
+      "type": "n8n-nodes-base.splitInBatches",
+      "name": "Process Each Client",
+      "parameters": { "batchSize": 1, "options": {} }
+    },
+    {
+      "id": "google-docs-list-comments",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Google Docs — List Comments",
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/drive/v3/files/{{ $json.last_doc_id }}/comments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "qs": {
+          "fields": "comments(id,content,resolved,createdTime,replies,quotedFileContent)",
+          "includeDeleted": false
+        },
+        "options": { "timeout": 5000 }
+      }
+    },
+    {
+      "id": "filter-new-unresolved",
+      "type": "n8n-nodes-base.function",
+      "name": "Filter — New Unresolved Comments Only",
+      "parameters": {
+        "functionCode": "const comments = $input.first().json.comments || [];\nconst lastChecked = new Date($json.last_checked_time);\n\nconst newUnresolved = comments.filter(c => {\n  const created = new Date(c.createdTime);\n  return !c.resolved && created > lastChecked;\n});\n\nreturn newUnresolved.map(c => ({ json: c }));"
+      }
+    },
+    {
+      "id": "check-revision-count",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Check Revision Count for This Comment",
+      "parameters": {
+        "operation": "list",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "revision_log",
+        "filterByFormula": "AND({client_id} = '{{ $json.clientId }}', {comment_id} = '{{ $json.id }}')"
+      },
+      "_comment": "Count records returned. If >= 2, escalate to Telegram instead of calling Claude."
+    },
+    {
+      "id": "if-escalate",
+      "type": "n8n-nodes-base.if",
+      "name": "IF — 3rd Revision? Escalate.",
+      "parameters": {
+        "conditions": {
+          "number": [{ "value1": "={{ $json.revisionCount }}", "value2": 2, "operation": "gte" }]
+        }
+      }
+    },
+    {
+      "id": "telegram-escalate",
+      "type": "n8n-nodes-base.telegram",
+      "name": "Telegram — 3rd Revision Escalation",
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_OPERATOR_CHAT_ID }}",
+        "text": "🔴 3RD REVISION — OPERATOR NEEDED\nClient: {{ $json.clientName }}\nDoc: {{ $json.docUrl }}\nComment: \"{{ $json.commentText }}\"\nThis comment has been revised twice. Claude has stopped. Please handle manually."
+      }
+    },
+    {
+      "id": "claude-revise",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Claude API — Draft Revision",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "headers": {
+          "x-api-key": "={{ $env.ANTHROPIC_API_KEY }}",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": "claude-sonnet-4-6",
+          "max_tokens": 1024,
+          "messages": [{ "role": "user", "content": "={{ $json._revisionPrompt }}" }]
+        },
+        "options": { "timeout": 30000 }
+      }
+    },
+    {
+      "id": "google-docs-update-text",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Google Docs — Update Post Text",
+      "parameters": {
+        "method": "POST",
+        "url": "https://docs.googleapis.com/v1/documents/{{ $json.docId }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "body": {
+          "requests": "={{ $json._batchUpdateRequests }}"
+        },
+        "_comment": "Replace the original post text range with the revised text. Location must be calculated from parsed doc structure."
+      }
+    },
+    {
+      "id": "google-drive-reply-comment",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Google Drive — Reply to Comment (Leave OPEN)",
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/drive/v3/files/{{ $json.docId }}/comments/{{ $json.commentId }}/replies",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "body": {
+          "content": "Updated — {{ $json.revisionNote }} Does this feel right? Resolve this comment when you're happy with it."
+        },
+        "_comment": "IMPORTANT: Do NOT set action to 'resolve'. Comment must stay open. Only the client resolves."
+      }
+    },
+    {
+      "id": "airtable-log-revision",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Log Revision",
+      "parameters": {
+        "operation": "create",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "revision_log",
+        "fields": {
+          "client_id": "={{ $json.clientId }}",
+          "revision_date": "={{ $now.toISO() }}",
+          "comment_id": "={{ $json.commentId }}",
+          "post_number": "={{ $json.postNumber }}",
+          "original_text": "={{ $json.originalText }}",
+          "revised_text": "={{ $json.revisedText }}",
+          "comment_text": "={{ $json.commentText }}",
+          "pass_number": "={{ $json.revisionCount + 1 }}",
+          "confidence": "={{ $json.confidence }}"
+        }
+      }
+    },
+    {
+      "id": "airtable-update-last-checked",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Update last_checked_time",
+      "parameters": {
+        "operation": "update",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "id": "={{ $json.airtableRecordId }}",
+        "fields": { "last_checked_time": "={{ $now.toISO() }}" }
+      }
+    },
+    {
+      "id": "telegram-revision-alert",
+      "type": "n8n-nodes-base.telegram",
+      "name": "Telegram — Revision Made Alert",
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_OPERATOR_CHAT_ID }}",
+        "text": "✏️ REVISION MADE — {{ $json.clientName }}\nPost #{{ $json.postNumber }}\nComment: \"{{ $json.commentText }}\"\nConfidence: {{ $json.confidence }}\nNote: {{ $json.revisionNote }}\n\nDoc: {{ $json.docUrl }}"
+      }
+    }
+  ]
+}

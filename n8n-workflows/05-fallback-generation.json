@@ -1,0 +1,133 @@
+{
+  "_meta": {
+    "name": "05 — Fallback Content Generation",
+    "description": "Triggered on Day 8 when a client has not submitted their monthly questionnaire. Generates evergreen content using voice profile and authority topics only — no time-sensitive material. Labels all posts as [FALLBACK]. Requires same client GO approval before scheduling.",
+    "version": "1.0.0",
+    "trigger": "Called by workflow 01 (Day 8 check) or manual trigger",
+    "critical_rule": "Fallback content is NEVER auto-published. Same GO mechanic applies."
+  },
+  "nodes": [
+    {
+      "id": "trigger-fallback",
+      "type": "n8n-nodes-base.manualTrigger",
+      "name": "Trigger — Day 8 Fallback (called by Workflow 01)",
+      "parameters": {},
+      "_comment": "Receives: { client_id, client_name, client_email, airtable_record_id }"
+    },
+    {
+      "id": "airtable-fetch-voice-profile",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Fetch Voice Profile + Past Topics",
+      "parameters": {
+        "operation": "list",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "voice_profiles",
+        "filterByFormula": "{client_id} = '{{ $json.client_id }}'"
+      }
+    },
+    {
+      "id": "build-fallback-prompt",
+      "type": "n8n-nodes-base.function",
+      "name": "Function — Build Fallback Prompt",
+      "parameters": {
+        "functionCode": "// Load prompts/fallback-generation.md template\n// Substitute:\n//   {{post_count}} from client plan_tier\n//   {{client_name}} from client record\n//   {{voice_profile_json}} from voice_profiles table\n//   {{best_performing_posts}} if available (month 3+)\n//   {{past_topics_covered}} from voice_profiles table\n// Return built prompt string"
+      }
+    },
+    {
+      "id": "claude-generate-fallback",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Claude API — Generate Fallback Posts",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "headers": {
+          "x-api-key": "={{ $env.ANTHROPIC_API_KEY }}",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": "claude-sonnet-4-6",
+          "max_tokens": 4096,
+          "messages": [{ "role": "user", "content": "={{ $json._fallbackPrompt }}" }]
+        },
+        "options": { "timeout": 90000 }
+      }
+    },
+    {
+      "id": "validate-fallback-output",
+      "type": "n8n-nodes-base.function",
+      "name": "Function — Validate Fallback Output",
+      "parameters": {
+        "functionCode": "// Same validation as workflow 02\n// Uses claudeOutputValidator.validateClaudeOutput()\n// On failure: Telegram critical alert — no automated path, manual intervention"
+      }
+    },
+    {
+      "id": "google-docs-create-fallback",
+      "type": "n8n-nodes-base.googleDocs",
+      "name": "Google Docs — Create Fallback Doc",
+      "parameters": {
+        "operation": "create",
+        "title": "={{ $json.clientName }} — LinkedIn Posts — {{ $now.format('MMMM YYYY') }} [FALLBACK]",
+        "content": "={{ $json._formattedFallbackDocContent }}"
+      },
+      "_comment": "Doc header must include: 'FALLBACK CONTENT — Generated without your monthly input. Review more carefully than usual before approving.'"
+    },
+    {
+      "id": "resend-fallback-delivery",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Resend — Send Fallback Delivery Email",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "resendApi",
+        "body": {
+          "from": "{{ $env.FROM_EMAIL }}",
+          "to": "={{ $json.clientEmail }}",
+          "subject": "Your LinkedIn posts for {{ $now.format('MMMM') }} — please review carefully",
+          "html": "<!-- See email-templates/fallback-delivery.html -- includes explicit note about missing questionnaire -->"
+        }
+      }
+    },
+    {
+      "id": "airtable-update-fallback-status",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Update Status + Past Topics",
+      "parameters": {
+        "operation": "update",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "id": "={{ $json.airtableRecordId }}",
+        "fields": {
+          "status": "doc_delivered",
+          "last_content_generated": "={{ $now.format('YYYY-MM') }}",
+          "last_doc_id": "={{ $json.googleDocId }}",
+          "is_fallback_this_month": true
+        }
+      }
+    },
+    {
+      "id": "airtable-update-past-topics",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Append Topics to past_topics_covered",
+      "parameters": {
+        "operation": "update",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "voice_profiles",
+        "id": "={{ $json.voiceProfileRecordId }}",
+        "fields": {
+          "past_topics_covered": "={{ JSON.stringify([...$json.existingTopics, ...$json.newTopics]) }}"
+        }
+      }
+    },
+    {
+      "id": "telegram-fallback-alert",
+      "type": "n8n-nodes-base.telegram",
+      "name": "Telegram — Fallback Generated Alert",
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_OPERATOR_CHAT_ID }}",
+        "text": "⚠️ FALLBACK GENERATED — {{ $json.clientName }}\nThey missed the questionnaire deadline.\nDoc sent. Awaiting their approval.\nDoc: {{ $json.docUrl }}"
+      }
+    }
+  ]
+}

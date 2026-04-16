@@ -1,0 +1,211 @@
+{
+  "_meta": {
+    "name": "06 — Emergency Control (Telegram Bot Webhooks)",
+    "description": "Receives commands from the Telegram bot (/pause, /resume, /pauseall, /status). Each command triggers an atomic operation: Airtable status update + Taplio queue clear + client email. All webhook paths are authenticated via X-Webhook-Secret header.",
+    "version": "1.0.0",
+    "trigger": "POST from Telegram bot to /webhook/operator/{command}",
+    "atomic_requirement": "/pause must complete all 3 steps or report partial failure — never silently succeed on only some steps."
+  },
+  "webhooks": {
+    "pause":      "/webhook/operator/pause",
+    "resume":     "/webhook/operator/resume",
+    "pauseall":   "/webhook/operator/pauseall",
+    "status":     "/webhook/operator/status",
+    "status-all": "/webhook/operator/status-all"
+  },
+  "nodes": [
+    {
+      "id": "webhook-pause",
+      "type": "n8n-nodes-base.webhook",
+      "name": "Webhook — /pause",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "operator/pause",
+        "authentication": "headerAuth",
+        "options": {}
+      }
+    },
+    {
+      "id": "validate-secret-pause",
+      "type": "n8n-nodes-base.function",
+      "name": "Validate Webhook Secret",
+      "parameters": {
+        "functionCode": "const secret = $input.first().json.headers['x-webhook-secret'];\nif (secret !== $env.N8N_WEBHOOK_SECRET) {\n  throw new Error('Unauthorised: invalid webhook secret');\n}\nreturn $input.all();"
+      }
+    },
+    {
+      "id": "airtable-set-paused",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Set status = paused_emergency",
+      "parameters": {
+        "operation": "update",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "id": "={{ $json.airtableRecordId }}",
+        "fields": {
+          "status": "paused_emergency",
+          "paused_at": "={{ $now.toISO() }}"
+        }
+      }
+    },
+    {
+      "id": "taplio-clear-queue",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Taplio — Delete All Scheduled Posts",
+      "parameters": {
+        "method": "DELETE",
+        "url": "https://api.taplio.com/api/v1/scheduled-posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "taplioApi",
+        "qs": { "accountId": "={{ $json.taplioAccountId }}" },
+        "options": { "timeout": 10000 }
+      },
+      "_comment": "Clears all future scheduled posts for this client's Taplio account. Verify Taplio API supports bulk delete — if not, fetch list and delete individually."
+    },
+    {
+      "id": "resend-pause-notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Resend — Notify Client of Pause",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "resendApi",
+        "body": {
+          "from": "{{ $env.FROM_EMAIL }}",
+          "to": "={{ $json.clientEmail }}",
+          "subject": "A quick note about your LinkedIn posts",
+          "html": "<p>Hi {{ $json.clientName }},</p><p>We've temporarily paused your LinkedIn posts while we review a quality issue. We'll have it sorted within 2 hours and will follow up shortly.</p>"
+        }
+      }
+    },
+    {
+      "id": "webhook-resume",
+      "type": "n8n-nodes-base.webhook",
+      "name": "Webhook — /resume",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "operator/resume",
+        "authentication": "headerAuth",
+        "options": {}
+      }
+    },
+    {
+      "id": "airtable-set-active",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Set status = active",
+      "parameters": {
+        "operation": "update",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "id": "={{ $json.airtableRecordId }}",
+        "fields": {
+          "status": "active",
+          "resumed_at": "={{ $now.toISO() }}"
+        }
+      }
+    },
+    {
+      "id": "webhook-pauseall",
+      "type": "n8n-nodes-base.webhook",
+      "name": "Webhook — /pauseall",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "operator/pauseall",
+        "authentication": "headerAuth",
+        "options": {}
+      }
+    },
+    {
+      "id": "airtable-get-all-active",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Get All Active Clients",
+      "parameters": {
+        "operation": "list",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "filterByFormula": "{status} != 'cancelled'"
+      }
+    },
+    {
+      "id": "split-all-clients",
+      "type": "n8n-nodes-base.splitInBatches",
+      "name": "Process Each Client for Pauseall",
+      "parameters": { "batchSize": 1, "options": {} }
+    },
+    {
+      "id": "webhook-status-one",
+      "type": "n8n-nodes-base.webhook",
+      "name": "Webhook — /status {client_id}",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "operator/status",
+        "authentication": "headerAuth",
+        "options": {}
+      }
+    },
+    {
+      "id": "airtable-get-one-client",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Get Client Record",
+      "parameters": {
+        "operation": "list",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "filterByFormula": "{client_id} = '{{ $json.client_id }}'"
+      }
+    },
+    {
+      "id": "taplio-get-scheduled-count",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Taplio — Get Scheduled Post Count",
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.taplio.com/api/v1/scheduled-posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "taplioApi",
+        "qs": { "accountId": "={{ $json.taplioAccountId }}" },
+        "options": { "timeout": 10000 }
+      }
+    },
+    {
+      "id": "webhook-status-all",
+      "type": "n8n-nodes-base.webhook",
+      "name": "Webhook — /status all",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "operator/status-all",
+        "authentication": "headerAuth",
+        "options": {}
+      }
+    },
+    {
+      "id": "airtable-get-all-clients-status",
+      "type": "n8n-nodes-base.airtable",
+      "name": "Airtable — Get All Client Statuses",
+      "parameters": {
+        "operation": "list",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "tableId": "clients",
+        "fields": ["client_id", "name", "status", "plan_tier", "last_content_generated"]
+      }
+    },
+    {
+      "id": "aggregate-status-summary",
+      "type": "n8n-nodes-base.function",
+      "name": "Function — Build Status Summary",
+      "parameters": {
+        "functionCode": "const clients = $input.all().map(i => i.json);\nconst summary = {\n  total: clients.length,\n  active: clients.filter(c => c.status === 'active').length,\n  doc_delivered: clients.filter(c => c.status === 'doc_delivered').length,\n  scheduled_confirmed: clients.filter(c => c.status === 'scheduled_confirmed').length,\n  paused_emergency: clients.filter(c => c.status === 'paused_emergency').length,\n  generation_failed: clients.filter(c => c.status === 'generation_failed').length,\n  scheduling_partial: clients.filter(c => c.status === 'scheduling_partial').length,\n  cancelled: clients.filter(c => c.status === 'cancelled').length,\n};\nsummary.action_needed = summary.generation_failed + summary.scheduling_partial + summary.paused_emergency;\nreturn [{ json: { summary } }];"
+      }
+    }
+  ],
+  "recovery_procedure": {
+    "bad_post_live": {
+      "minute_0_5": "Send /pause {client_id} via Telegram bot",
+      "minute_5_15": "Email client: 'Action needed — please delete your last LinkedIn post'. Include exact steps.",
+      "minute_15_60": "Diagnose root cause in n8n execution log",
+      "hour_1_2": "Fix root cause, regenerate affected post, manual review before re-queuing",
+      "hour_2_4": "Send /resume {client_id}, monitor Taplio for next publish"
+    }
+  }
+}
