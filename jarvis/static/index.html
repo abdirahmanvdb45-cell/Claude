@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JARVIS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a1628;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+      color: #fff;
+      user-select: none;
+    }
+
+    #title {
+      position: absolute;
+      top: 32px;
+      letter-spacing: 0.5em;
+      font-size: 13px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.75);
+      text-transform: uppercase;
+    }
+
+    #canvas-wrap {
+      position: relative;
+      width: 420px;
+      height: 420px;
+      cursor: pointer;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #mic-hint {
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.15em;
+      white-space: nowrap;
+      transition: opacity 0.3s;
+    }
+
+    #status {
+      margin-top: 28px;
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      color: rgba(200, 220, 255, 0.7);
+      min-height: 20px;
+      text-transform: lowercase;
+    }
+
+    #transcript {
+      margin-top: 12px;
+      max-width: 380px;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      min-height: 18px;
+      letter-spacing: 0.05em;
+    }
+
+    #response {
+      margin-top: 8px;
+      max-width: 380px;
+      text-align: center;
+      font-size: 13px;
+      color: rgba(160, 200, 255, 0.85);
+      min-height: 18px;
+      letter-spacing: 0.03em;
+      line-height: 1.6;
+    }
+
+    .dot-anim::after {
+      content: '';
+      animation: dots 1.2s steps(3, end) infinite;
+    }
+
+    @keyframes dots {
+      0%   { content: '.'; }
+      33%  { content: '..'; }
+      66%  { content: '...'; }
+      100% { content: ''; }
+    }
+  </style>
+</head>
+<body>
+  <div id="title">J . A . R . V . I . S .</div>
+
+  <div id="canvas-wrap">
+    <canvas id="canvas" width="420" height="420"></canvas>
+    <div id="mic-hint">hold space or click to speak</div>
+  </div>
+
+  <div id="status">online</div>
+  <div id="transcript"></div>
+  <div id="response"></div>
+
+  <script src="/static/particles.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
