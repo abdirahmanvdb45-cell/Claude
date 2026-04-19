@@ -4,6 +4,9 @@ All agents import from here.
 """
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Anthropic API key — set in environment or .env file
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
