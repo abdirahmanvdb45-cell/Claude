@@ -129,7 +129,7 @@ def save_chapter(book_title: str, chapter_number: int, chapter_title: str, conte
     os.makedirs(book_dir, exist_ok=True)
     filename = f"chapter_{chapter_number:02d}_{_slugify(chapter_title, 30)}.md"
     filepath = os.path.join(book_dir, filename)
-    with open(filepath, "w") as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         f.write(f"# Chapter {chapter_number}: {chapter_title}\n\n{content}")
     return f"Chapter saved: {filepath}"
 
@@ -331,7 +331,7 @@ def compile_manuscript(book_title: str) -> str:
     with open(output_path, "w", encoding="utf-8") as out:
         out.write(f"# {book_title}\n\n---\n\n")
         for cf in chapter_files:
-            with open(os.path.join(book_dir, cf), encoding="utf-8") as ch:
+            with open(os.path.join(book_dir, cf), encoding="utf-8", errors="replace") as ch:
                 out.write(ch.read())
                 out.write("\n\n---\n\n")
 
