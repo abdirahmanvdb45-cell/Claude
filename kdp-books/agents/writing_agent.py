@@ -113,11 +113,21 @@ WRITING_TOOLS = [
 ]
 
 
+import re
+
+def _slugify(text: str, max_len: int = 40) -> str:
+    slug = text.lower()
+    slug = re.sub(r'[<>:"/\\|?*]', '', slug)  # strip Windows-invalid chars
+    slug = re.sub(r'\s+', '_', slug)
+    slug = re.sub(r'_+', '_', slug).strip('_')
+    return slug[:max_len]
+
+
 def save_chapter(book_title: str, chapter_number: int, chapter_title: str, content: str) -> str:
-    book_slug = book_title.lower().replace(" ", "_")[:40]
+    book_slug = _slugify(book_title)
     book_dir = os.path.join(MANUSCRIPTS_DIR, book_slug)
     os.makedirs(book_dir, exist_ok=True)
-    filename = f"chapter_{chapter_number:02d}_{chapter_title.lower().replace(' ', '_')[:30]}.md"
+    filename = f"chapter_{chapter_number:02d}_{_slugify(chapter_title, 30)}.md"
     filepath = os.path.join(book_dir, filename)
     with open(filepath, "w") as f:
         f.write(f"# Chapter {chapter_number}: {chapter_title}\n\n{content}")
@@ -125,7 +135,7 @@ def save_chapter(book_title: str, chapter_number: int, chapter_title: str, conte
 
 
 def save_outline(book_title: str, outline: dict) -> str:
-    book_slug = book_title.lower().replace(" ", "_")[:40]
+    book_slug = _slugify(book_title)
     book_dir = os.path.join(MANUSCRIPTS_DIR, book_slug)
     os.makedirs(book_dir, exist_ok=True)
     filepath = os.path.join(book_dir, "00_outline.json")
