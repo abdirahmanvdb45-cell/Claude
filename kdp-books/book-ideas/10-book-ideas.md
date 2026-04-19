@@ -158,6 +158,36 @@
 
 ---
 
+---
+
+## BOOK 11: Men's Psychology / Relationships (Non-Fiction)
+**Title**: *The Man She Stays For: The Psychology of What Women Actually Want — and How to Become It*
+**Target Audience**: Men 25–45 frustrated by failed relationships, confused by female behaviour, done with surface-level dating advice
+**Core Premise**: A deep, research-backed breakdown of how women actually think, what they test for, why they stay or leave, and the specific internal qualities that make a man irreplaceable — not through tactics or manipulation, but through genuine psychological transformation. Covers female testing behaviour, the dual attraction system (genetic quality vs. investment quality), the psychology of commitment, why women pull away, what "high value" actually means biologically and socially, and how a man builds it from the inside out.
+
+**Chapter Structure (15 chapters, ~20,000–25,000 words):**
+- Part 1 — How She Actually Works: The biology beneath attraction, the dual evaluation system, what women screen for vs. what they say they want, why kindness alone fails
+- Part 2 — The Tests: What she's testing, how testing works, the 5 categories of female tests, what passing looks like, what failing communicates
+- Part 3 — The Psychology of Staying: What makes a woman commit, why she pulls away, the chase dynamic, emotional availability vs. emotional neediness, the independence paradox
+- Part 4 — Becoming the Man: Identity and groundedness, mission and purpose as attraction, social status signals, emotional regulation, the integration (strength + warmth)
+
+**Why It Sells**:
+- Male relationship psychology is the #1 growing self-help sub-niche (2024–2026)
+- "Why she left / why she's pulling away" = top male search behaviour on YouTube and Amazon
+- Books like *No More Mr. Nice Guy*, *The Way of the Superior Man*, *Models* consistently rank — gap exists for a modern, research-grounded, non-manipulative take
+- Target reader has tried everything and is ready for real answers, not tactics
+- High review generation: men who feel "finally understood" become advocates
+- Companion market: men's coaching, podcasts, YouTube — organic discovery
+
+**Differentiator**: Not red-pill, not pick-up artistry, not toxic — grounded in evolutionary psychology, attachment theory, and real female voices (Jessica Os, Renee Wade, Sadia Khan). Empowers men to become genuinely better, not to game women.
+
+**Keywords**: "how to attract women," "female psychology," "why women pull away," "high value man," "what women want in a man," "masculine confidence," "stop being nice guy"
+**Pricing**: $6.99–$9.99 ebook | $14.99–$16.99 paperback
+**Platform**: KDP Select (strong KU readership in men's self-help)
+**Difficulty**: Medium | **Estimated Length**: 200–250 pages
+
+---
+
 ## PRIORITY RANKING (Start Here)
 
 | Rank | Book | Reason |

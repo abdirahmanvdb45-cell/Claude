@@ -1,5 +1,5 @@
-# THE GROUNDED MAN
-### *What Women Actually Respond To, Why It Works, and How to Build It From the Inside Out*
+# THE MAN SHE STAYS FOR
+### *The Psychology of What Women Actually Want — and How to Become It*
 
 ---
 
