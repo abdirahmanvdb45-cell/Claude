@@ -289,8 +289,9 @@ if __name__ == "__main__":
     print("  1. Full autonomous pipeline (research → publish)")
     print("  2. Fast-track a specific book")
     print("  3. Research only")
+    print("  4. Resume — compile + export Word + listing (book already written)")
 
-    choice = input("\nChoice (1/2/3): ").strip()
+    choice = input("\nChoice (1/2/3/4): ").strip()
 
     if choice == "1":
         print("\n--- Your Book Ideas ---")
@@ -360,3 +361,40 @@ if __name__ == "__main__":
         result = run_research(topic=topic)
         for f in result["findings"]:
             print(f["content"])
+
+    elif choice == "4":
+        from config import MANUSCRIPTS_DIR, PUBLISH_DIR
+        from writing_agent import compile_manuscript, export_to_word, _slugify
+        import os
+
+        # List available manuscript folders
+        folders = [f for f in os.listdir(MANUSCRIPTS_DIR)
+                   if os.path.isdir(os.path.join(MANUSCRIPTS_DIR, f)) and not f.startswith('.')]
+
+        if not folders:
+            print("No manuscript folders found.")
+        else:
+            print("\nAvailable manuscripts:")
+            for i, folder in enumerate(folders, 1):
+                chapter_count = len([f for f in os.listdir(os.path.join(MANUSCRIPTS_DIR, folder))
+                                     if f.startswith("chapter_") and f.endswith(".md")])
+                print(f"  {i}. {folder}  ({chapter_count} chapters)")
+
+            pick = input("\nWhich manuscript? (number): ").strip()
+            try:
+                folder_name = folders[int(pick) - 1]
+                # Convert folder slug back to a readable title
+                book_title = folder_name.replace("_", " ").title()
+                print(f"\nCompiling: {book_title}")
+
+                # Compile to markdown + export Word
+                compile_manuscript(book_title)
+
+                # Run optimization
+                print("\nGenerating Amazon listing package...")
+                concept = {"working_title": book_title, "genre": "Non-fiction"}
+                optimize_book(concept)
+
+                print(f"\nDone. Word file saved to: {PUBLISH_DIR}")
+            except (IndexError, ValueError):
+                print("Invalid selection.")
