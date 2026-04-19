@@ -219,7 +219,7 @@ def run_autonomous(goal: str = None, user_profile: dict = None) -> dict:
     while True:
         response = client.messages.create(
             model=DEFAULT_MODEL,
-            max_tokens=4096,
+            max_tokens=8192,
             system=SYSTEM_PROMPT,
             tools=ORCHESTRATOR_TOOLS,
             messages=messages,
@@ -237,6 +237,7 @@ def run_autonomous(goal: str = None, user_profile: dict = None) -> dict:
             tool_results = []
             for block in response.content:
                 if block.type == "tool_use":
+                    print(f"  → {block.name}: {list(block.input.keys())}")
                     result = process_tool_call(block.name, block.input)
                     tool_results.append({
                         "type": "tool_result",

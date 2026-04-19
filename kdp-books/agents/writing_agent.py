@@ -117,7 +117,7 @@ import re
 
 def _slugify(text: str, max_len: int = 40) -> str:
     slug = text.lower()
-    slug = re.sub(r'[<>:"/\\|?*]', '', slug)  # strip Windows-invalid chars
+    slug = re.sub(r'[<>:"/\\|?*,\'!]', '', slug)  # strip Windows-invalid + punctuation
     slug = re.sub(r'\s+', '_', slug)
     slug = re.sub(r'_+', '_', slug).strip('_')
     return slug[:max_len]
