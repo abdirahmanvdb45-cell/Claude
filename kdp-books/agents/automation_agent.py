@@ -293,8 +293,61 @@ if __name__ == "__main__":
     choice = input("\nChoice (1/2/3): ").strip()
 
     if choice == "1":
-        print("\nStarting full autonomous pipeline...")
-        result = run_autonomous()
+        print("\n--- Your Book Ideas ---")
+        books = [
+            "1.  Broke to Buffer — Personal Finance",
+            "2.  The Lighthouse Keeper's Mistake — Romance Fiction",
+            "3.  The Perimenopause Playbook — Women's Health",
+            "4.  Chaos to Clarity — ADHD Productivity",
+            "5.  What She Remembered — Psychological Thriller",
+            "6.  Math Makes Sense Grade 3 Workbook — Education",
+            "7.  The Last Letter — True Crime",
+            "8.  The Herbalist of Hollow Creek — Cozy Fantasy",
+            "9.  Quit Shrinking — Women's Self-Help",
+            "10. $1,000 in 30 Days — Side Hustle",
+            "11. The Man She Stays For — Men's Psychology",
+            "12. Let the agent choose the best opportunity",
+        ]
+        for b in books:
+            print(f"  {b}")
+        book_choice = input("\nWhich book should I write? (1-12): ").strip()
+
+        book_map = {
+            "1": "Broke to Buffer: A 12-Week Money Reset for People Who Hate Budgets",
+            "2": "The Lighthouse Keeper's Mistake",
+            "3": "The Perimenopause Playbook",
+            "4": "Chaos to Clarity: The ADHD Productivity System That Actually Works for Adults",
+            "5": "What She Remembered",
+            "6": "Math Makes Sense Grade 3 Workbook",
+            "7": "The Last Letter",
+            "8": "The Herbalist of Hollow Creek",
+            "9": "Quit Shrinking",
+            "10": "$1,000 in 30 Days: The Freelancer's First Month Roadmap",
+            "11": "The Man She Stays For",
+        }
+
+        if book_choice in book_map:
+            selected = book_map[book_choice]
+            print(f"\nWriting: {selected}")
+            goal = f"""Run the full KDP publishing pipeline for this specific book: "{selected}"
+
+            Steps:
+            1. check_pipeline_status
+            2. run_pipeline_phase (research) — research this specific topic/niche
+            3. run_pipeline_phase (concept_generation) — build the concept for "{selected}"
+            4. select_book_to_write — confirm "{selected}" as the book
+            5. run_pipeline_phase (outline) — full chapter outline
+            6. run_pipeline_phase (write_chapter) — write ALL chapters one by one until complete
+            7. run_pipeline_phase (compile) — compile full manuscript
+            8. run_pipeline_phase (optimize) — build Amazon listing package
+            9. check_pipeline_status — report completion
+
+            Write EVERY chapter — do not stop after 3. Complete the full book."""
+            result = run_autonomous(goal=goal)
+        else:
+            print("\nLetting the agent choose the best opportunity...")
+            result = run_autonomous()
+
         for line in result["output"]:
             print(line)
 
