@@ -152,8 +152,18 @@ OPTIMIZATION_TOOLS = [
 ]
 
 
+import re
+
+def _slugify(text: str, max_len: int = 40) -> str:
+    slug = text.lower()
+    slug = re.sub(r'[<>:"/\\|?*,\'!]', '', slug)
+    slug = re.sub(r'\s+', '_', slug)
+    slug = re.sub(r'_+', '_', slug).strip('_')
+    return slug[:max_len]
+
+
 def save_marketing_package(book_title: str, package: dict) -> str:
-    book_slug = book_title.lower().replace(" ", "_")[:40]
+    book_slug = _slugify(book_title)
     filename = f"{book_slug}_marketing.json"
     filepath = os.path.join(MARKETING_DIR, filename)
     with open(filepath, "w") as f:
@@ -211,16 +221,25 @@ def optimize_book(concept: dict) -> dict:
     """
     package = {}
 
+    title = concept.get('working_title') or concept.get('title') or 'Untitled'
+    genre = concept.get('genre') or 'Non-fiction'
+    target_reader = concept.get('target_reader_identity') or concept.get('target_audience') or 'General adult readers'
+    promise = concept.get('transformation_promise') or concept.get('premise') or ''
+    emotion = concept.get('primary_emotion') or 'aspiration'
+    desire = concept.get('desire_cluster') or 'growth'
+    gender = concept.get('gender_primary') or 'both'
+    age = concept.get('age_range') or '25-50'
+
     query = f"""Create a complete Amazon KDP optimization package for this book:
 
-    Working Title: {concept.get('working_title')}
-    Genre: {concept.get('genre', 'Non-fiction')}
-    Target Reader: {concept.get('target_reader_identity')}
-    Transformation Promise: {concept.get('transformation_promise')}
-    Primary Emotion: {concept.get('primary_emotion')}
-    Desire Cluster: {concept.get('desire_cluster')}
-    Gender Primary: {concept.get('gender_primary')}
-    Age Range: {concept.get('age_range')}
+    Working Title: {title}
+    Genre: {genre}
+    Target Reader: {target_reader}
+    Transformation Promise: {promise}
+    Primary Emotion: {emotion}
+    Desire Cluster: {desire}
+    Gender Primary: {gender}
+    Age Range: {age}
 
     Complete ALL of the following using the provided tools:
 
