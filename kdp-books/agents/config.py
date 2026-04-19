@@ -21,11 +21,12 @@ RESEARCH_DIR = os.path.join(BASE_DIR, "research")
 BOOK_IDEAS_DIR = os.path.join(BASE_DIR, "book-ideas")
 MANUSCRIPTS_DIR = os.path.join(BASE_DIR, "manuscripts")
 MARKETING_DIR = os.path.join(BASE_DIR, "marketing")
+PUBLISH_DIR = os.path.join(BASE_DIR, "publish")
 AGENTS_DIR = os.path.join(BASE_DIR, "agents")
 MEMORY_DIR = os.path.join(BASE_DIR, "agents", "memory")
 
 # Ensure directories exist
-for d in [RESEARCH_DIR, BOOK_IDEAS_DIR, MANUSCRIPTS_DIR, MARKETING_DIR, MEMORY_DIR]:
+for d in [RESEARCH_DIR, BOOK_IDEAS_DIR, MANUSCRIPTS_DIR, MARKETING_DIR, PUBLISH_DIR, MEMORY_DIR]:
     os.makedirs(d, exist_ok=True)
 
 # KDP Constants

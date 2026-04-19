@@ -9,7 +9,7 @@ import anthropic
 import json
 import os
 from datetime import datetime
-from config import ANTHROPIC_API_KEY, DEFAULT_MODEL, MANUSCRIPTS_DIR
+from config import ANTHROPIC_API_KEY, DEFAULT_MODEL, MANUSCRIPTS_DIR, PUBLISH_DIR
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -295,7 +295,7 @@ def write_full_book(concept: dict) -> dict:
     outline_result = create_outline(concept)
 
     # Step 2: Load saved outline
-    book_slug = book_title.lower().replace(" ", "_")[:40]
+    book_slug = _slugify(book_title)
     outline_path = os.path.join(MANUSCRIPTS_DIR, book_slug, "00_outline.json")
 
     if not os.path.exists(outline_path):
@@ -320,22 +320,110 @@ def write_full_book(concept: dict) -> dict:
 
 
 def compile_manuscript(book_title: str) -> str:
-    """Combines all chapter files into one complete manuscript."""
-    book_slug = book_title.lower().replace(" ", "_")[:40]
+    """Combines all chapter files into one complete manuscript, then exports to Word."""
+    book_slug = _slugify(book_title)
     book_dir = os.path.join(MANUSCRIPTS_DIR, book_slug)
     output_path = os.path.join(book_dir, f"FULL_MANUSCRIPT_{book_slug}.md")
 
     chapter_files = sorted([f for f in os.listdir(book_dir)
                             if f.startswith("chapter_") and f.endswith(".md")])
 
-    with open(output_path, "w") as out:
+    with open(output_path, "w", encoding="utf-8") as out:
         out.write(f"# {book_title}\n\n---\n\n")
         for cf in chapter_files:
-            with open(os.path.join(book_dir, cf)) as ch:
+            with open(os.path.join(book_dir, cf), encoding="utf-8") as ch:
                 out.write(ch.read())
                 out.write("\n\n---\n\n")
 
+    # Export to Word in publish folder
+    word_path = export_to_word(book_title, output_path)
+    print(f"\n  [Publish] Word document ready: {word_path}")
+
     return f"Manuscript compiled: {output_path}"
+
+
+def export_to_word(book_title: str, manuscript_path: str) -> str:
+    """Converts the compiled markdown manuscript to a formatted Word .docx file."""
+    try:
+        from docx import Document
+        from docx.shared import Pt, Inches, RGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+    except ImportError:
+        return "python-docx not installed — run: pip install python-docx"
+
+    doc = Document()
+
+    # Page margins
+    for section in doc.sections:
+        section.top_margin = Inches(1)
+        section.bottom_margin = Inches(1)
+        section.left_margin = Inches(1.25)
+        section.right_margin = Inches(1.25)
+
+    # Title page
+    title_para = doc.add_paragraph()
+    title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = title_para.add_run(book_title.upper())
+    run.bold = True
+    run.font.size = Pt(28)
+    doc.add_paragraph()  # spacer
+
+    # Parse markdown and build document
+    with open(manuscript_path, encoding="utf-8") as f:
+        lines = f.readlines()
+
+    for line in lines:
+        line = line.rstrip("\n")
+
+        if line.startswith("# "):
+            text = line[2:].strip()
+            if text.upper() == book_title.upper():
+                continue  # already on title page
+            h = doc.add_heading(text, level=1)
+            h.runs[0].font.size = Pt(20)
+
+        elif line.startswith("## "):
+            h = doc.add_heading(line[3:].strip(), level=2)
+            h.runs[0].font.size = Pt(14)
+
+        elif line.startswith("### "):
+            h = doc.add_heading(line[4:].strip(), level=3)
+            h.runs[0].font.size = Pt(12)
+
+        elif line.strip() == "---":
+            doc.add_paragraph("─" * 40).alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        elif line.strip() == "":
+            doc.add_paragraph()
+
+        else:
+            # Handle **bold** inline
+            para = doc.add_paragraph()
+            para.paragraph_format.space_after = Pt(6)
+            _add_formatted_run(para, line.strip())
+
+    # Save to publish folder
+    safe_title = re.sub(r'[<>:"/\\|?*]', '', book_title).strip()
+    word_filename = f"{safe_title}.docx"
+    word_path = os.path.join(PUBLISH_DIR, word_filename)
+    doc.save(word_path)
+    return word_path
+
+
+def _add_formatted_run(para, text: str):
+    """Adds text to a paragraph, handling **bold** and *italic* markdown."""
+    import re
+    pattern = re.compile(r'(\*\*.*?\*\*|\*.*?\*)')
+    parts = pattern.split(text)
+    for part in parts:
+        if part.startswith("**") and part.endswith("**"):
+            run = para.add_run(part[2:-2])
+            run.bold = True
+        elif part.startswith("*") and part.endswith("*"):
+            run = para.add_run(part[1:-1])
+            run.italic = True
+        else:
+            para.add_run(part)
 
 
 if __name__ == "__main__":
