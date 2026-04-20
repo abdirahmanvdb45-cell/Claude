@@ -291,8 +291,9 @@ if __name__ == "__main__":
     print("  3. Research only")
     print("  4. Resume — compile + export Word + listing (book already written)")
     print("  5. Book Assistant — ask questions about any finished book")
+    print("  6. Edit & Polish — improve a finished manuscript and export final Word file")
 
-    choice = input("\nChoice (1/2/3/4/5): ").strip()
+    choice = input("\nChoice (1/2/3/4/5/6): ").strip()
 
     if choice == "1":
         print("\n--- Your Book Ideas ---")
@@ -403,3 +404,7 @@ if __name__ == "__main__":
     elif choice == "5":
         from book_assistant_agent import run_book_assistant
         run_book_assistant()
+
+    elif choice == "6":
+        from editing_agent import run_editing_agent
+        run_editing_agent()
