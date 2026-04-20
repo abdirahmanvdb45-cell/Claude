@@ -290,8 +290,9 @@ if __name__ == "__main__":
     print("  2. Fast-track a specific book")
     print("  3. Research only")
     print("  4. Resume — compile + export Word + listing (book already written)")
+    print("  5. Book Assistant — ask questions about any finished book")
 
-    choice = input("\nChoice (1/2/3/4): ").strip()
+    choice = input("\nChoice (1/2/3/4/5): ").strip()
 
     if choice == "1":
         print("\n--- Your Book Ideas ---")
@@ -398,3 +399,7 @@ if __name__ == "__main__":
                 print(f"\nDone. Word file saved to: {PUBLISH_DIR}")
             except (IndexError, ValueError):
                 print("Invalid selection.")
+
+    elif choice == "5":
+        from book_assistant_agent import run_book_assistant
+        run_book_assistant()
