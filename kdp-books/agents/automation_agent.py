@@ -284,127 +284,124 @@ def quick_book(concept_name: str) -> dict:
 if __name__ == "__main__":
     print("=" * 50)
     print("   KDP PUBLISHING AUTOMATION AGENT")
+    print("   Press Ctrl+C at any time to exit")
     print("=" * 50)
-    print("\nOptions:")
-    print("  1. Full autonomous pipeline (research → publish)")
-    print("  2. Fast-track a specific book")
-    print("  3. Research only")
-    print("  4. Resume — compile + export Word + listing (book already written)")
-    print("  5. Book Assistant — ask questions about any finished book")
-    print("  6. Edit & Polish — improve a finished manuscript and export final Word file")
 
-    choice = input("\nChoice (1/2/3/4/5/6): ").strip()
+    while True:
+        print("\nOptions:")
+        print("  1. Full autonomous pipeline (research → publish)")
+        print("  2. Fast-track a specific book")
+        print("  3. Research only")
+        print("  4. Resume — compile + export Word + listing (book already written)")
+        print("  5. Book Assistant — ask questions about any finished book")
+        print("  6. Edit & Polish — improve a finished manuscript and export final Word file")
 
-    if choice == "1":
-        print("\n--- Your Book Ideas ---")
-        books = [
-            "1.  Broke to Buffer — Personal Finance",
-            "2.  The Lighthouse Keeper's Mistake — Romance Fiction",
-            "3.  The Perimenopause Playbook — Women's Health",
-            "4.  Chaos to Clarity — ADHD Productivity",
-            "5.  What She Remembered — Psychological Thriller",
-            "6.  Math Makes Sense Grade 3 Workbook — Education",
-            "7.  The Last Letter — True Crime",
-            "8.  The Herbalist of Hollow Creek — Cozy Fantasy",
-            "9.  Quit Shrinking — Women's Self-Help",
-            "10. $1,000 in 30 Days — Side Hustle",
-            "11. The Man She Stays For — Men's Psychology",
-            "12. Let the agent choose the best opportunity",
-        ]
-        for b in books:
-            print(f"  {b}")
-        book_choice = input("\nWhich book should I write? (1-12): ").strip()
+        try:
+            choice = input("\nChoice (1/2/3/4/5/6): ").strip()
+        except KeyboardInterrupt:
+            print("\n\nGoodbye.")
+            break
 
-        book_map = {
-            "1": "Broke to Buffer: A 12-Week Money Reset for People Who Hate Budgets",
-            "2": "The Lighthouse Keeper's Mistake",
-            "3": "The Perimenopause Playbook",
-            "4": "Chaos to Clarity: The ADHD Productivity System That Actually Works for Adults",
-            "5": "What She Remembered",
-            "6": "Math Makes Sense Grade 3 Workbook",
-            "7": "The Last Letter",
-            "8": "The Herbalist of Hollow Creek",
-            "9": "Quit Shrinking",
-            "10": "$1,000 in 30 Days: The Freelancer's First Month Roadmap",
-            "11": "The Man She Stays For",
-        }
+        if choice == "1":
+            print("\n--- Your Book Ideas ---")
+            books = [
+                "1.  Broke to Buffer — Personal Finance",
+                "2.  The Lighthouse Keeper's Mistake — Romance Fiction",
+                "3.  The Perimenopause Playbook — Women's Health",
+                "4.  Chaos to Clarity — ADHD Productivity",
+                "5.  What She Remembered — Psychological Thriller",
+                "6.  Math Makes Sense Grade 3 Workbook — Education",
+                "7.  The Last Letter — True Crime",
+                "8.  The Herbalist of Hollow Creek — Cozy Fantasy",
+                "9.  Quit Shrinking — Women's Self-Help",
+                "10. $1,000 in 30 Days — Side Hustle",
+                "11. The Man She Stays For — Men's Psychology",
+                "12. Let the agent choose the best opportunity",
+            ]
+            for b in books:
+                print(f"  {b}")
+            book_choice = input("\nWhich book should I write? (1-12): ").strip()
 
-        if book_choice in book_map:
-            selected = book_map[book_choice]
-            print(f"\nWriting: {selected}")
-            goal = f"""Run the full KDP publishing pipeline for this specific book: "{selected}"
+            book_map = {
+                "1": "Broke to Buffer: A 12-Week Money Reset for People Who Hate Budgets",
+                "2": "The Lighthouse Keeper's Mistake",
+                "3": "The Perimenopause Playbook",
+                "4": "Chaos to Clarity: The ADHD Productivity System That Actually Works for Adults",
+                "5": "What She Remembered",
+                "6": "Math Makes Sense Grade 3 Workbook",
+                "7": "The Last Letter",
+                "8": "The Herbalist of Hollow Creek",
+                "9": "Quit Shrinking",
+                "10": "$1,000 in 30 Days: The Freelancer's First Month Roadmap",
+                "11": "The Man She Stays For",
+            }
 
-            Steps:
-            1. check_pipeline_status
-            2. run_pipeline_phase (research) — research this specific topic/niche
-            3. run_pipeline_phase (concept_generation) — build the concept for "{selected}"
-            4. select_book_to_write — confirm "{selected}" as the book
-            5. run_pipeline_phase (outline) — full chapter outline
-            6. run_pipeline_phase (write_chapter) — write ALL chapters one by one until complete
-            7. run_pipeline_phase (compile) — compile full manuscript
-            8. run_pipeline_phase (optimize) — build Amazon listing package
-            9. check_pipeline_status — report completion
+            if book_choice in book_map:
+                selected = book_map[book_choice]
+                print(f"\nWriting: {selected}")
+                goal = f"""Run the full KDP publishing pipeline for this specific book: "{selected}"
 
-            Write EVERY chapter — do not stop after 3. Complete the full book."""
-            result = run_autonomous(goal=goal)
+                Steps:
+                1. check_pipeline_status
+                2. run_pipeline_phase (research) — research this specific topic/niche
+                3. run_pipeline_phase (concept_generation) — build the concept for "{selected}"
+                4. select_book_to_write — confirm "{selected}" as the book
+                5. run_pipeline_phase (outline) — full chapter outline
+                6. run_pipeline_phase (write_chapter) — write ALL chapters one by one until complete
+                7. run_pipeline_phase (compile) — compile full manuscript
+                8. run_pipeline_phase (optimize) — build Amazon listing package
+                9. check_pipeline_status — report completion
+
+                Write EVERY chapter — do not stop after 3. Complete the full book."""
+                result = run_autonomous(goal=goal)
+            else:
+                print("\nLetting the agent choose the best opportunity...")
+                result = run_autonomous()
+
+            for line in result["output"]:
+                print(line)
+
+        elif choice == "2":
+            book_name = input("Book title/concept: ").strip()
+            quick_book(book_name)
+
+        elif choice == "3":
+            topic = input("Research topic (or press Enter for full scan): ").strip() or None
+            result = run_research(topic=topic)
+            for f in result["findings"]:
+                print(f["content"])
+
+        elif choice == "4":
+            folders = [f for f in os.listdir(MANUSCRIPTS_DIR)
+                       if os.path.isdir(os.path.join(MANUSCRIPTS_DIR, f)) and not f.startswith('.')]
+            if not folders:
+                print("No manuscript folders found.")
+            else:
+                print("\nAvailable manuscripts:")
+                for i, folder in enumerate(folders, 1):
+                    chapter_count = len([f for f in os.listdir(os.path.join(MANUSCRIPTS_DIR, folder))
+                                         if f.startswith("chapter_") and f.endswith(".md")])
+                    print(f"  {i}. {folder}  ({chapter_count} chapters)")
+                pick = input("\nWhich manuscript? (number): ").strip()
+                try:
+                    folder_name = folders[int(pick) - 1]
+                    book_title = folder_name.replace("_", " ").title()
+                    print(f"\nCompiling: {book_title}")
+                    compile_manuscript(book_title)
+                    print("\nGenerating Amazon listing package...")
+                    concept = {"working_title": book_title, "genre": "Non-fiction"}
+                    optimize_book(concept)
+                    print(f"\nDone. Word file saved to: {PUBLISH_DIR}")
+                except (IndexError, ValueError):
+                    print("Invalid selection.")
+
+        elif choice == "5":
+            from book_assistant_agent import run_book_assistant
+            run_book_assistant()
+
+        elif choice == "6":
+            from editing_agent import run_editing_agent
+            run_editing_agent()
+
         else:
-            print("\nLetting the agent choose the best opportunity...")
-            result = run_autonomous()
-
-        for line in result["output"]:
-            print(line)
-
-    elif choice == "2":
-        book_name = input("Book title/concept: ").strip()
-        quick_book(book_name)
-
-    elif choice == "3":
-        topic = input("Research topic (or press Enter for full scan): ").strip() or None
-        result = run_research(topic=topic)
-        for f in result["findings"]:
-            print(f["content"])
-
-    elif choice == "4":
-        from config import MANUSCRIPTS_DIR, PUBLISH_DIR
-        from writing_agent import compile_manuscript, export_to_word, _slugify
-        import os
-
-        # List available manuscript folders
-        folders = [f for f in os.listdir(MANUSCRIPTS_DIR)
-                   if os.path.isdir(os.path.join(MANUSCRIPTS_DIR, f)) and not f.startswith('.')]
-
-        if not folders:
-            print("No manuscript folders found.")
-        else:
-            print("\nAvailable manuscripts:")
-            for i, folder in enumerate(folders, 1):
-                chapter_count = len([f for f in os.listdir(os.path.join(MANUSCRIPTS_DIR, folder))
-                                     if f.startswith("chapter_") and f.endswith(".md")])
-                print(f"  {i}. {folder}  ({chapter_count} chapters)")
-
-            pick = input("\nWhich manuscript? (number): ").strip()
-            try:
-                folder_name = folders[int(pick) - 1]
-                # Convert folder slug back to a readable title
-                book_title = folder_name.replace("_", " ").title()
-                print(f"\nCompiling: {book_title}")
-
-                # Compile to markdown + export Word
-                compile_manuscript(book_title)
-
-                # Run optimization
-                print("\nGenerating Amazon listing package...")
-                concept = {"working_title": book_title, "genre": "Non-fiction"}
-                optimize_book(concept)
-
-                print(f"\nDone. Word file saved to: {PUBLISH_DIR}")
-            except (IndexError, ValueError):
-                print("Invalid selection.")
-
-    elif choice == "5":
-        from book_assistant_agent import run_book_assistant
-        run_book_assistant()
-
-    elif choice == "6":
-        from editing_agent import run_editing_agent
-        run_editing_agent()
+            print("Invalid choice. Please enter 1–6.")
