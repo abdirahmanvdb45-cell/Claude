@@ -295,9 +295,10 @@ if __name__ == "__main__":
         print("  4. Resume — compile + export Word + listing (book already written)")
         print("  5. Book Assistant — ask questions about any finished book")
         print("  6. Edit & Polish — improve a finished manuscript and export final Word file")
+        print("  7. Rewrite — rewrite a book in a new style or with new instructions")
 
         try:
-            choice = input("\nChoice (1/2/3/4/5/6): ").strip()
+            choice = input("\nChoice (1/2/3/4/5/6/7): ").strip()
         except KeyboardInterrupt:
             print("\n\nGoodbye.")
             break
@@ -402,6 +403,10 @@ if __name__ == "__main__":
         elif choice == "6":
             from editing_agent import run_editing_agent
             run_editing_agent()
+
+        elif choice == "7":
+            from rewrite_agent import run_rewrite_agent
+            run_rewrite_agent()
 
         else:
             print("Invalid choice. Please enter 1–6.")
