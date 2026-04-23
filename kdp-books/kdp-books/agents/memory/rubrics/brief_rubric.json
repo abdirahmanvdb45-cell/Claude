@@ -1,0 +1,50 @@
+{
+  "artifact_type": "brief",
+  "version": "v2",
+  "criteria": [
+    {
+      "name": "reader_precision",
+      "description": "Is the reader avatar specific enough to generate a clear 'this is for me' reaction?",
+      "weight": 0.20
+    },
+    {
+      "name": "promise_specificity",
+      "description": "Is the core promise bold, concrete, and believable — not vague or generic?",
+      "weight": 0.20
+    },
+    {
+      "name": "thesis_strength",
+      "description": "Is the central argument sharp and defensible in one sentence?",
+      "weight": 0.15
+    },
+    {
+      "name": "market_distinctiveness",
+      "description": "Does the brief define a genuinely different angle from comparable books?",
+      "weight": 0.20
+    },
+    {
+      "name": "scope_clarity",
+      "description": "Are scope_in and scope_out defined clearly enough to prevent scope creep?",
+      "weight": 0.10
+    },
+    {
+      "name": "tone_precision",
+      "description": "Are tone rules specific enough to be actionable by a writer?",
+      "weight": 0.10
+    },
+    {
+      "name": "evidence_awareness",
+      "description": "Are sensitive claim areas identified so they can be handled carefully?",
+      "weight": 0.05
+    }
+  ],
+  "decision_thresholds": {
+    "approve_min_weighted_score": 8.0,
+    "rewrite_floor": 6.5,
+    "rewrite_if_any_below": {
+      "reader_precision": 7.0,
+      "promise_specificity": 7.0,
+      "market_distinctiveness": 6.5
+    }
+  }
+}

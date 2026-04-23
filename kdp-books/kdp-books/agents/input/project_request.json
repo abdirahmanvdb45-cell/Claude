@@ -1,0 +1,40 @@
+{
+  "project_name": "the_man_she_stays_for",
+  "book_type": "nonfiction",
+  "book_title": "The Man She Stays For",
+  "topic": "How a man behaves with women — the real signals, patterns, and character traits that determine whether a woman stays, leaves, or never takes him seriously in the first place",
+  "reader": "Men aged 22–45 who are intelligent and self-aware but keep getting the same frustrating results with women. They've read some content on this topic but found it either too manipulative, too theoretical, or too soft. They want honest, direct answers.",
+  "goal": "The reader finishes the book with a clear understanding of what drives female attraction and long-term interest — and specific behavioral changes they can make immediately",
+  "unique_angle": "Written from the perspective of a man who has lived this — not a coach, therapist, or academic, but someone who consumed a lot of content in this space (including creators like Jessica Osho) and wanted to go deeper. The book is an honest personal investigation as much as it is a guide. The differentiator from Manson, Glover, and Tomassi is that it doesn't lecture, doesn't sell an ideology, and doesn't pretend to have all the answers — it examines behavior honestly from the inside out.",
+  "author_background": "Personal lived experience with women — recurring patterns observed, content consumed across multiple perspectives including female creators like Jessica Osho, and a genuine drive to understand rather than win. No formal credentials — the authority comes from honesty and self-awareness, not a title.",
+  "scope": "Both early attraction and long-term relationships — the book covers the full arc from first impressions through to why men lose women they had",
+  "relationship_type": "Primarily monogamous and serious relationships, with relevance to dating as well",
+  "structure": "Trait and behavior-based — one core theme per chapter, building from first impressions to long-term dynamics",
+  "includes_case_studies": true,
+  "case_study_style": "Composite real-world scenarios and personal observations — no named individuals",
+  "geography": "Western, British English, internationally accessible",
+  "spelling_convention": "British English",
+  "tone": [
+    "direct",
+    "peer-level",
+    "no coaching-speak",
+    "British English",
+    "intelligent without being academic",
+    "honest and self-aware, not preachy"
+  ],
+  "length_target_words": 40000,
+  "author_name": "",
+  "author_constraints": [
+    "no toxic red-pill ideology",
+    "no manipulation tactics",
+    "evidence-sensitive claims must be handled carefully",
+    "avoid scientific overconfidence",
+    "write as a peer sharing observations, not an expert delivering verdicts"
+  ],
+  "comparables": [
+    "Models by Mark Manson",
+    "No More Mr Nice Guy by Robert Glover",
+    "The Rational Male by Rollo Tomassi"
+  ],
+  "source_material_paths": []
+}

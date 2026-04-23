@@ -1,0 +1,15 @@
+{
+  "projects_completed": 0,
+  "total_rejection_cycles": 0,
+  "failure_patterns_logged": 0,
+  "avg_brief_score": 0.0,
+  "avg_outline_score": 0.0,
+  "avg_chapter_score": 0.0,
+  "avg_groundedness_score": 0.0,
+  "avg_commercial_score": 0.0,
+  "human_review_rate": 0.0,
+  "avg_revisions_per_chapter": 0.0,
+  "most_common_failure_patterns": [],
+  "last_updated": null,
+  "_note": "Updated automatically by failure_miner.py and langgraph_orchestrator.py."
+}

@@ -1,0 +1,57 @@
+{
+  "artifact_type": "chapter",
+  "version": "v2",
+  "criteria": [
+    {
+      "name": "novelty",
+      "description": "Does this chapter introduce genuinely new value rather than repeating prior chapters?",
+      "weight": 0.20
+    },
+    {
+      "name": "clarity",
+      "description": "Is the argument understandable on first read without re-reading?",
+      "weight": 0.15
+    },
+    {
+      "name": "structure",
+      "description": "Does the chapter move logically and purposefully from point to point?",
+      "weight": 0.15
+    },
+    {
+      "name": "reader_value",
+      "description": "Does the reader gain practical or meaningful conceptual value?",
+      "weight": 0.20
+    },
+    {
+      "name": "redundancy_risk",
+      "description": "How much does the chapter overlap with previous content? (Lower is better — invert for scoring: 10 = no redundancy, 1 = high redundancy)",
+      "weight": 0.10
+    },
+    {
+      "name": "tone_consistency",
+      "description": "Does the chapter match the established voice bible throughout?",
+      "weight": 0.10
+    },
+    {
+      "name": "evidence_discipline",
+      "description": "Are factual or research-sensitive claims handled responsibly without overextension?",
+      "weight": 0.10
+    }
+  ],
+  "decision_thresholds": {
+    "approve_min_weighted_score": 8.0,
+    "rewrite_floor": 6.5,
+    "rewrite_if_any_below": {
+      "novelty": 7.0,
+      "clarity": 7.0,
+      "reader_value": 7.0,
+      "structure": 7.0
+    },
+    "rewrite_if_any_above": {
+      "redundancy_risk_raw": 4.0
+    },
+    "human_review_if_any_above": {
+      "evidence_risk_raw": 6.0
+    }
+  }
+}

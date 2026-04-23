@@ -1,0 +1,49 @@
+{
+  "artifact_type": "commercial",
+  "version": "v2",
+  "criteria": [
+    {
+      "name": "title_clarity",
+      "description": "Does the title immediately communicate the book's value to a casual browser?",
+      "weight": 0.15
+    },
+    {
+      "name": "subtitle_specificity",
+      "description": "Does the subtitle name the exact reader and the exact result they'll get?",
+      "weight": 0.15
+    },
+    {
+      "name": "audience_fit",
+      "description": "Is the reader avatar sharp enough to create a clear 'this is for me' reaction?",
+      "weight": 0.15
+    },
+    {
+      "name": "promise_strength",
+      "description": "Is the core promise bold, specific, and believable — not vague or inflated?",
+      "weight": 0.15
+    },
+    {
+      "name": "market_distinction",
+      "description": "Is there a clear, credible reason to choose this over existing books on the topic?",
+      "weight": 0.15
+    },
+    {
+      "name": "practical_sellability",
+      "description": "Can this book be summarised in one sentence a stranger would immediately understand?",
+      "weight": 0.15
+    },
+    {
+      "name": "kdp_search_visibility",
+      "description": "Does the title/subtitle contain language buyers actually search on Amazon?",
+      "weight": 0.10
+    }
+  ],
+  "decision_thresholds": {
+    "go_to_packaging_min": 7.5,
+    "rewrite_if_any_below": {
+      "title_clarity": 7.0,
+      "subtitle_specificity": 7.0,
+      "promise_strength": 7.0
+    }
+  }
+}
