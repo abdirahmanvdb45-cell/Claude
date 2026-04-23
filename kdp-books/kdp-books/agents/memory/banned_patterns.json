@@ -1,0 +1,21 @@
+{
+  "do_not_emit": [
+    "TITLE",
+    "duplicate chapter intros",
+    "restating the thesis in every opening paragraph",
+    "same anecdote reused in multiple chapters without explicit permission",
+    "same metaphor more than twice in one chapter",
+    "faux-profound one-line paragraphs used repeatedly",
+    "coaching language: unlock, transform, journey, game changer, deep dive",
+    "placeholder text of any kind",
+    "summaries of what the rest of the book will cover inserted mid-chapter"
+  ],
+  "structural_bans": [
+    "do not open a chapter by describing what the chapter is about",
+    "do not close a chapter with a list of everything the chapter covered",
+    "do not introduce a concept and then wait until the next paragraph to define it",
+    "do not use rhetorical questions as a substitute for making a point",
+    "do not stack three abstract nouns in a row"
+  ],
+  "last_updated": null
+}

@@ -1,0 +1,39 @@
+{
+  "artifact_type": "continuity",
+  "version": "v2",
+  "criteria": [
+    {
+      "name": "opening_variety",
+      "description": "Do chapters open in meaningfully different ways, or do they all follow the same pattern?",
+      "weight": 0.15
+    },
+    {
+      "name": "example_uniqueness",
+      "description": "Are named examples and case studies used only once across the manuscript?",
+      "weight": 0.20
+    },
+    {
+      "name": "concept_consistency",
+      "description": "Are key terms used consistently with the same meaning throughout?",
+      "weight": 0.20
+    },
+    {
+      "name": "voice_consistency",
+      "description": "Does the writing voice feel consistent across all chapters?",
+      "weight": 0.20
+    },
+    {
+      "name": "promise_delivery",
+      "description": "Does the full manuscript deliver on the book brief's core promise?",
+      "weight": 0.25
+    }
+  ],
+  "decision_thresholds": {
+    "approve_min_weighted_score": 8.0,
+    "rewrite_floor": 7.0,
+    "hard_reject_if": {
+      "example_uniqueness": 6.0,
+      "promise_delivery": 6.0
+    }
+  }
+}

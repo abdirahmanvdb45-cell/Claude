@@ -1,0 +1,31 @@
+{
+  "artifact_type": "grounding",
+  "version": "v2",
+  "criteria": [
+    {
+      "name": "claim_support_rate",
+      "description": "What percentage of high-risk claims are fully or partially supported?",
+      "weight": 0.35
+    },
+    {
+      "name": "overextension_control",
+      "description": "Are claims appropriately scoped — not making broader assertions than evidence supports?",
+      "weight": 0.25
+    },
+    {
+      "name": "opinion_framing",
+      "description": "Are opinion-based assertions clearly framed as such rather than stated as fact?",
+      "weight": 0.20
+    },
+    {
+      "name": "source_quality",
+      "description": "Where sources are cited or implied, are they credible and relevant?",
+      "weight": 0.20
+    }
+  ],
+  "decision_thresholds": {
+    "approve_min_groundedness_score": 0.85,
+    "rewrite_flagged_min": 0.70,
+    "block_escalate_below": 0.70
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "artifact_type": "outline",
+  "version": "v2",
+  "criteria": [
+    {
+      "name": "progression",
+      "description": "Does the chapter sequence move the reader forward rather than circling the same idea?",
+      "weight": 0.25
+    },
+    {
+      "name": "chapter_distinctiveness",
+      "description": "Is every chapter's new_idea genuinely distinct from every other chapter?",
+      "weight": 0.25
+    },
+    {
+      "name": "practical_payoff_density",
+      "description": "Do enough chapters (>70%) have a clear, specific practical takeaway?",
+      "weight": 0.20
+    },
+    {
+      "name": "dependency_logic",
+      "description": "Are chapter dependencies sensible — does the sequence build knowledge correctly?",
+      "weight": 0.15
+    },
+    {
+      "name": "scope_fit",
+      "description": "Does the outline deliver on the book brief's core promise without scope creep?",
+      "weight": 0.15
+    }
+  ],
+  "decision_thresholds": {
+    "approve_min_weighted_score": 8.0,
+    "rewrite_floor": 6.5,
+    "hard_reject_if": {
+      "chapter_distinctiveness": 6.0,
+      "progression": 6.0
+    }
+  }
+}
